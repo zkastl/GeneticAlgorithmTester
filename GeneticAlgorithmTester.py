@@ -1,5 +1,11 @@
 import random, csv, math
 
+''' REMEMBER!!!
+        Python tends to pass everything by reference.
+        When translating this to Java, I need to remember to pass-by-reference
+        all of my values.
+
+'''
 
 class Guest:
 
@@ -186,6 +192,7 @@ class Layout:
             for guest in table.seated_guests:
                 print("      {0} {1}".format(guest.first_name, guest.last_name))
 
+
 '''
     GA:
         Primary driver for the genetic algorithm
@@ -212,6 +219,7 @@ def GA(guests, capacity=8, empty_seats=2):
     temp_list = guests
 
     while len(population) == 0 or (member.fitness_value < FITNESS_THRESHOLD for member in population) and False:
+
         # Create an initial population by randomly selecting guests
         # from the guest list. Relationships play no role in this.
         for genome in range(0, POPULATION_SIZE):
@@ -245,7 +253,7 @@ def GA(guests, capacity=8, empty_seats=2):
         population[0].print_layout()
 
         # REPEAT THIS METHOD until the fitness is over a certain threshold.
-        
+        pass
 
 
 '''
@@ -268,7 +276,12 @@ def breed(population, death_rate=0.1):
     if members_to_select % 2 != 0: members_to_select += 1
 
     for c in range(members_to_select):
-        _selected.append(roulette_selection(population))
+        select = None
+
+        while(select is None or select in _selected):
+            select = roulette_selection(population)
+        
+        _selected.append(select)
 
     # grab pairs of members and breed them to create a child
     index = 0
@@ -282,30 +295,46 @@ def breed(population, death_rate=0.1):
 
     return _children
 
-
+'''
+    roulette_selection:
+        randomly selects a member of a population based on the fitness values of the population
+        higher fitness value -> higher chance of being selected
+        
+    returns: selected member of the population
+'''
 def roulette_selection(population):
 
-    sum_of_fitnesses = sum([p.fitness_score for p in population])
-    return population[0]
+    fitness_values = [p.fitness_score for p in population]
+    sum_of_fitnesses = sum(fitness_values)
+    pick = random.uniform(0,sum_of_fitnesses)
+    current = 0
+    for p in population:
+        current += p.fitness_score
+        if current > pick:
+            return p
+
+    return population[-1]
 
 '''
-    crossover:
+    crossover:  ***UNFINISHED***
     swaps portions of the mother and father's lists to create a child
 
     returns a new genome with the swapped characteristics
 '''
 def crossover(mother, father):
+
+    # Crossover tech:
+        # 
     return mother
 
-
-'''
+def mutate(children=[], mutation_rate=0.05):
+    '''
     mutate:
     randomly has a chance to mutate one child based on a mutation rate
     will not always mutate
 
-    returns the list of children, potentially with the mutated member
-'''
-def mutate(children=[], mutation_rate=0.05):
+    function(children=[], mutation_rate=0.05) -> Layout list
+    '''
 
     # Calculate if the function will mutate a child
     if (random.random() > mutation_rate):
@@ -321,6 +350,9 @@ def mutate(children=[], mutation_rate=0.05):
     Provides details on how to mutate a genome
     
     returns the mutated genome
+'''
+'''
+    ***UNFINISHED***
 '''
 def mutate_genome(genome):
     pass
