@@ -1,4 +1,5 @@
 import random, csv, math
+from copy import deepcopy
 
 ''' REMEMBER!!!
         Python tends to pass everything by reference.
@@ -51,8 +52,8 @@ class Table:
     def add_guest(self, guest):
         if len(self.seated_guests) < self.capacity - self.empty_seats:
             if guest not in self.seated_guests:
+                guest.table_number = self.table_number
                 self.seated_guests.append(guest)
-                self.seated_guests[-1].table_number = self.table_number
                 return True
 
         return False
@@ -84,7 +85,7 @@ class Layout:
         self.fitness_score = 0
 
     # function that gets all of the individual guests from the tables in the layout
-    def guests(self):
+    def get_guests(self):
 
         guest_list = []
 
@@ -102,15 +103,18 @@ class Layout:
             print("Invalid parameters")
             return None
 
+        # make a copy of the guest list, to ensure that the original is not altered
+        temp_guest_list = deepcopy(guest_list)
+
         # Add the first table to the layout
         num_current_tables = 1
         table_list = [Table(num_current_tables, capacity, empty_seats)]
 
         # randomly shuffle the guests around
-        random.shuffle(guest_list)
+        random.shuffle(temp_guest_list)
 
         # Create tables until all of the guests have been allocated
-        for guest in guest_list:
+        for guest in temp_guest_list:
 
             # Try to add the guest to the last table...
             if not table_list[-1].add_guest(guest):
@@ -149,13 +153,13 @@ class Layout:
         # I don't like this loop. I'm sure there's a faster way to perform a "where" statement in
         # Python, but since I have to rewrite this in Java anyway, as long as it works: don't care.
         # What I want to do: good_neighbors = self.all_guests.Where(x => guest.same_table.Contains(x.guest_number))  
-        for guest in self.guests():
+        for guest in self.get_guests():
 
             # allocate a list for guest objects related to the guest numbers in a guest's 'same table' attribute
             good_neighbors = []
             bad_neighbors = []
 
-            for g in self.guests():
+            for g in self.get_guests():
                 if g.guest_number in guest.same_table:
                     good_neighbors.append(g)
                 elif g.guest_number in guest.not_same_table:
@@ -322,10 +326,21 @@ def roulette_selection(population):
     returns a new genome with the swapped characteristics
 '''
 def crossover(mother, father):
+    
+    # make a copy of the mother
+    child = Layout(mother)
 
-    # Crossover tech:
-        # 
-    return mother
+    # get the count of 'chromosomes' to swap
+    chromosomes_to_swap = len(mother.get_guests()) // 2
+
+    # for each of the chromosomes we need to swap, select a random 
+    # number of a guest, select that guest and swap that spot with
+    #  the position of the same guest on the father
+    for chromosome in range(0, chromosomes_to_swap):
+
+        selected = math.floor(random.uniform(1, len(mother.get_guests()))) + 1
+        selected_guest = [guest for guest in mother.get_guests() if int(guest.guest_number) == selected]
+        selected_guest_father_table_number = [guest for guest in father.get_guests() if int(guest.guest_number) == selected][0].table_number
 
 def mutate(children=[], mutation_rate=0.05):
     '''
@@ -355,6 +370,14 @@ def mutate(children=[], mutation_rate=0.05):
     ***UNFINISHED***
 '''
 def mutate_genome(genome):
+    
+    # randomly select two guests and swap their seats
+    selected_guest_a = genome.guests()[random.uniform(0, len(genome.guests()))]
+    selected_guest_b = None
+
+    while selected_guest_b is None or selected_guest_b is selected_guest_a:
+        selected_guest_b = genome.guests()[random.uniform(0, len(genome.guests()))]
+
     pass
 
 
