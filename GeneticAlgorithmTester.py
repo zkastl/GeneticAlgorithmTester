@@ -141,9 +141,6 @@ class Layout:
         # Starting fitness score
         self.fitness_score = 0
 
-        # I don't like this loop. I'm sure there's a faster way to perform a "where" statement in
-        # Python, but since I have to rewrite this in Java anyway, as long as it works: don't care.
-        # What I want to do: good_neighbors = self.all_guests.Where(x => guest.same_table.Contains(x.guest_number))  
         for guest in self.get_guests():
 
             good_neighbors = [neighbor for neighbor in self.get_guests() if neighbor.guest_number in guest.same_table]
@@ -151,7 +148,7 @@ class Layout:
 
             for neighbor in good_neighbors:
                 if guest.table_number == neighbor.table_number:
-                    self.fitness_score += 2
+                    self.fitness_score += 5
 
             for neighbor in bad_neighbors:
                 if guest.table_number != neighbor.table_number:
@@ -182,215 +179,222 @@ class Layout:
         return new_layout
 
 
-def GA(guests, capacity=8, empty_seats=2):
-    """
-        GA:
-            Primary driver for the genetic algorithm
-            Takes a guest list, table capacity, and the default number of empty seats
-            and creates a evolved table listing based on GA
+class GA:
 
-        returns: best table listing
-    """
-    # Parameter check
-    if guests is None:
-        print("Unable to run algorithm, guest list is empty.")
-        return None
+    @staticmethod
+    def GA(guests, capacity=8, empty_seats=2):
+        """
+            GA:
+                Primary driver for the genetic algorithm
+                Takes a guest list, table capacity, and the default number of empty seats
+                and creates a evolved table listing based on GA
 
-    # DEFAULT GA PARAMETERS; set these values to change how the algorithm works
-    POPULATION_SIZE = 100
-    MUTATION_RATE = 0.1
-    DEATH_RATE = 0.1
-    FITNESS_THRESHOLD = 1000
-    MAX_GENERATIONS = 5000
+            returns: best table listing
+        """
+        # Parameter check
+        if guests is None:
+            print("Unable to run algorithm, guest list is empty.")
+            return None
 
-    # Init
-    population = []
-    generation = 1
-    max_fitness = 0
+        # DEFAULT GA PARAMETERS; set these values to change how the algorithm works
+        POPULATION_SIZE = 20
+        MUTATION_RATE = 0.1
+        DEATH_RATE = 0.2
+        FITNESS_THRESHOLD = 1000
+        MAX_GENERATIONS = 1000
 
-    # Create an initial population by randomly selecting guests
-    # from the guest list. Relationships play no role in this.
-    for genome in range(0, POPULATION_SIZE):
-        # Create a randomized layout of guests at the table
-        layout = Layout.create_random_table_layout(guests, capacity=capacity, empty_seats=empty_seats)
+        # Init
+        population = []
+        generation = 1
+        max_fitness = 0
 
-        # Evaluate the fitness of the layout
-        layout.evaluate_fitness()
+        # Create an initial population by randomly selecting guests
+        # from the guest list. Relationships play no role in this.
+        for genome in range(0, POPULATION_SIZE):
+            # Create a randomized layout of guests at the table
+            layout = Layout.create_random_table_layout(guests, capacity=capacity, empty_seats=empty_seats)
 
-        # Add the member to the population
-        population.append(layout)
+            # Evaluate the fitness of the layout
+            layout.evaluate_fitness()
 
-    while max_fitness < FITNESS_THRESHOLD and generation < MAX_GENERATIONS:
+            # Add the member to the population
+            population.append(layout)
 
-        # Randomly select (round-robin) members to breed and create children
-        children = breed(population, DEATH_RATE)
+        while max_fitness < FITNESS_THRESHOLD and generation < MAX_GENERATIONS:
 
-        # Insert a mutation into the population
-        mutate(children, MUTATION_RATE)
+            # Randomly select (round-robin) members to breed and create children
+            children = GA.breed(population, DEATH_RATE)
 
-        # Kill off the lowest fitness of the population to make room for the children
-        # Sort the population by fitness value from greatest to smallest
-        population.sort(key=lambda l: l.fitness_score, reverse=True)
+            # Insert a mutation into the population
+            GA.mutate(children, MUTATION_RATE)
 
-        # remove the last X members: where X is the amount of children
-        del population[-len(children):]
+            # Kill off the lowest fitness of the population to make room for the children
+            # Sort the population by fitness value from greatest to smallest
+            population.sort(key=lambda l: l.fitness_score, reverse=True)
 
-        # append the children to the population
-        population.extend(children)
+            # remove the last X members: where X is the amount of children
+            del population[-len(children):]
 
-        # print the details of the most fit member
-        # Repeat until the fitness is over a certain threshold.        
-        population.sort(key=lambda l: l.fitness_score, reverse=True)
-        print('Generation {0} - Max fitness: {1}'.format(generation, population[0].fitness_score))
-        generation += 1
+            # append the children to the population
+            population.extend(children)
 
-    population[0].print_layout()
+            # print the details of the most fit member
+            # Repeat until the fitness is over a certain threshold.        
+            population.sort(key=lambda l: l.fitness_score, reverse=True)
+            print('Generation {0} - Max fitness: {1}'.format(generation, population[0].fitness_score))
+            generation += 1
+
+        population[0].print_layout()
 
 
-'''
-    breed:
-    Breed for new members of the population. This function takes three parameters:
-        The population to breed - List
-        The fitness values for the population - List
-        The death rate of the population for a generation
+    '''
+        breed:
+        Breed for new members of the population. This function takes three parameters:
+            The population to breed - List
+            The fitness values for the population - List
+            The death rate of the population for a generation
 
-    Returns - list of children selected from parents in the population
-'''
-def breed(population, death_rate=0.1):
+        Returns - list of children selected from parents in the population
+    '''
+    @staticmethod
+    def breed(population, death_rate=0.1):
     
-    # list to track selected parents
-    _selected = []
-    _children = []
+        # list to track selected parents
+        _selected = []
+        _children = []
 
-    # Use round-robin selection to select members to breed
-    members_to_select = math.ceil(len(population) * death_rate)
-    if members_to_select % 2 != 0: members_to_select += 1
+        # Use round-robin selection to select members to breed
+        members_to_select = math.ceil(len(population) * death_rate)
+        if members_to_select % 2 != 0: members_to_select += 1
 
-    for c in range(int(members_to_select)):
-        select = None
+        for c in range(int(members_to_select)):
+            select = None
 
-        while select is None or select in _selected:
-            select = roulette_selection(population)
+            while select is None or select in _selected:
+                select = GA.roulette_selection(population)
         
-        _selected.append(select)
+            _selected.append(select)
 
-    # grab pairs of members and breed them to create a child
-    index = 0
-    while index < len(_selected):
-        _children.append(crossover(mother=_selected[index], father=_selected[index+1]))
-        index += 2
+        # grab pairs of members and breed them to create a child
+        index = 0
+        while index < len(_selected):
+            _children.append(GA.crossover(mother=_selected[index], father=_selected[index+1]))
+            index += 2
 
-    # DEBUG to make sure this is working right
-    if len(_children) != members_to_select / 2:
-        raise ValueError
+        # DEBUG to make sure this is working right
+        if len(_children) != members_to_select / 2:
+            raise ValueError
 
-    return _children
+        return _children
 
-'''
-    roulette_selection:
-        randomly selects a member of a population based on the fitness values of the population
-        higher fitness value -> higher chance of being selected
+
+    @staticmethod
+    def roulette_selection(population):
+        """
+        roulette_selection:
+            randomly selects a member of a population based on the fitness values of the population
+            higher fitness value -> higher chance of being selected
         
-    returns: selected member of the population
-'''
-def roulette_selection(population):
+        returns: selected member of the population
+        """
+        fitness_values = [p.fitness_score for p in population]
+        sum_of_fitness = sum(fitness_values)
+        pick = random.uniform(0,sum_of_fitness)
+        current = 0
+        for p in population:
+            current += p.fitness_score
+            if current > pick:
+                return p
 
-    fitness_values = [p.fitness_score for p in population]
-    sum_of_fitness = sum(fitness_values)
-    pick = random.uniform(0,sum_of_fitness)
-    current = 0
-    for p in population:
-        current += p.fitness_score
-        if current > pick:
-            return p
-
-    return population[-1]
+        return population[-1]
 
 
-def crossover(mother: Layout, father: Layout):
-    """
-        swaps portions of the mother and father's lists to create a child
+    @staticmethod
+    def crossover(mother: Layout, father: Layout):
 
-        returns a new genome with the swapped characteristics
-    """
+        """
+            Swaps portions of the mother and father's lists to create a child and returns a new genome with the swapped characteristics.
+        """
 
-    # make a copy of the mother
-    child = Layout.deepcopy(mother)
+        # make a copy of the mother
+        child = Layout.deepcopy(mother)
 
-    # get the count of 'chromosomes' to swap
-    chromosomes_to_swap = len(child.get_guests()) // 2
+        # get the count of 'chromosomes' to swap
+        chromosomes_to_swap = len(child.get_guests()) // 2
 
-    # for each of the chromosomes we need to swap, select a random 
-    # number of a guest, select that guest and swap that spot with
-    #  the position of the same guest on the father
+        # for each of the chromosomes we need to swap, select a random 
+        # number of a guest, select that guest and swap that spot with
+        #  the position of the same guest on the father
 
-    # NOTE: this works primarily because python is *pointer-happy*
-    # i.e changing the data referenced by a label updates the label
-    # this will probably have to change in the java implementation
-    for chromosome in range(0, chromosomes_to_swap):
+        # NOTE: this works primarily because python is *pointer-happy*
+        # i.e changing the data referenced by a label updates the label
+        # this will probably have to change in the java implementation
+        for chromosome in range(0, chromosomes_to_swap):
 
-        # randomly select a guest number from the list of guests
-        selected = math.floor(random.uniform(1, len(child.get_guests()))) + 1
+            # randomly select a guest number from the list of guests
+            selected = math.floor(random.uniform(1, len(child.get_guests()))) + 1
 
-        # select the guest in the mother's genome that corresponds to the number pid
-        selected_guest = [guest for guest in child.get_guests() if int(guest.guest_number) == selected][0]
+            # select the guest in the mother's genome that corresponds to the number pid
+            selected_guest = [guest for guest in child.get_guests() if int(guest.guest_number) == selected][0]
 
-        # find the table number of the selected guest in the father's layout
-        fathers_guest = [guest for guest in father.get_guests() if int(guest.guest_number) == selected][0]
+            # find the table number of the selected guest in the father's layout
+            fathers_guest = [guest for guest in father.get_guests() if int(guest.guest_number) == selected][0]
 
-        # find the first guest in the mother's layout that is at the table linked to by the father's layout
-        swapped_guest = [guest for guest in child.get_guests() if int(guest.table_number) == fathers_guest.table_number][0]
+            # find the first guest in the mother's layout that is at the table linked to by the father's layout
+            swapped_guest = [guest for guest in child.get_guests() if int(guest.table_number) == fathers_guest.table_number][0]
 
-        # swap the table numbers of the two selected guests
-        backup_guest = selected_guest
-        selected_guest = swapped_guest
-        swapped_guest = backup_guest
+            # swap the table numbers of the two selected guests
+            backup_guest = selected_guest
+            selected_guest = swapped_guest
+            swapped_guest = backup_guest
 
-    child.evaluate_fitness()
-    return child
+        child.evaluate_fitness()
+        return child
 
+    @staticmethod
+    def mutate(children, mutation_rate=0.05):
 
-def mutate(children, mutation_rate=0.05):
-
-    # Calculate if the function will mutate a child
-    if random.random() > mutation_rate:
-        return
+        # Calculate if the function will mutate a child
+        if random.random() > mutation_rate:
+            return
     
-    # Randomly shuffle the children and apply the mutation to the last element
-    random.shuffle(children)
+        # Randomly shuffle the children and apply the mutation to the last element
+        random.shuffle(children)
 
-    # mutate
-    mutate_genome(children[-1])
+        # mutate
+        GA.mutate_genome(children[-1])
 
+    @staticmethod
+    def mutate_genome(genome):
 
-def mutate_genome(genome):
-    """
-        mutate_genome:
-        Provides details on how to mutate a genome
+        """
+            mutate_genome:
+            Provides details on how to mutate a genome
 
-        returns the mutated genome
-    """
+            returns the mutated genome
+        """
 
-    # randomly select two guests and swap their seats
-    selected_guest_a = genome.get_guests()[int(random.uniform(0, len(genome.get_guests())))]
-    selected_guest_b = None
+        # randomly select two guests and swap their seats
+        selected_guest_a = genome.get_guests()[int(random.uniform(0, len(genome.get_guests())))]
+        selected_guest_b = None
 
-    # verify that the selected b guest is not the same guest
-    while selected_guest_b is None or selected_guest_b is selected_guest_a:
-        selected_guest_b = genome.get_guests()[int(random.uniform(0, len(genome.get_guests())))]
+        # verify that the selected b guest is not the same guest
+        while selected_guest_b is None or selected_guest_b is selected_guest_a:
+            selected_guest_b = genome.get_guests()[int(random.uniform(0, len(genome.get_guests())))]
 
-    # swap the table numbers of the two guests
-    table_number = selected_guest_a.table_number
-    selected_guest_a.table_number = selected_guest_b.table_number
-    selected_guest_b.table_number = table_number
+        # swap the table numbers of the two guests
+        table_number = selected_guest_a.table_number
+        selected_guest_a.table_number = selected_guest_b.table_number
+        selected_guest_b.table_number = table_number
 
-    # swap the guests
-    selected_backup = selected_guest_a
-    selected_guest_a = selected_guest_b
-    selected_guest_b = selected_backup
+        # swap the guests
+        selected_backup = selected_guest_a
+        selected_guest_a = selected_guest_b
+        selected_guest_b = selected_backup
 
 
 def create_guests(filename):
+
     """
         create_guests:
             Creates a list of guest objects formatted from the sample data
@@ -412,21 +416,18 @@ def create_guests(filename):
                 first_sames = 3
                 guests.append(Guest(row[0], row[1], row[2],
                                     row[first_sames:first_sames + number_of_sames],
-                                    row[first_sames + number_of_sames:first_sames +
-                                                                      number_of_sames + number_of_notsames]))
+                                    row[first_sames + number_of_sames:first_sames + number_of_sames + number_of_notsames]))
 
     return guests
 
 
-'''
-    __main__:
-        main driver for the algorithm tester
-
-    returns: None
-'''
 if __name__ == '__main__':
 
-    CSV_FILE = 'seating_sample.csv'
-    csv_guests = create_guests(CSV_FILE)
-    
-    GA(csv_guests)
+    """
+        __main__:
+            main driver for the algorithm tester
+
+        returns: None
+    """
+    CSV_FILE = 'seating_sample.csv'    
+    GA.GA(create_guests(CSV_FILE))

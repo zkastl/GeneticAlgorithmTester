@@ -25,6 +25,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="GeneticAlgorithmTester.py" />
+    <Compile Include="marksman.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.6" />
