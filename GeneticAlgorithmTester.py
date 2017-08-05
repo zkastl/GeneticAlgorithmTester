@@ -143,16 +143,20 @@ class Layout:
 
         for guest in self.get_guests():
 
-            good_neighbors = [neighbor for neighbor in self.get_guests() if neighbor.guest_number in guest.same_table]
-            bad_neighbors = [neighbor for neighbor in self.get_guests() if neighbor.guest_number in guest.not_same_table]
+            #good_neighbors = [neighbor for neighbor in self.get_guests() if neighbor.guest_number in guest.same_table]
+            #bad_neighbors = [neighbor for neighbor in self.get_guests() if neighbor.guest_number in guest.not_same_table]
 
-            for neighbor in good_neighbors:
-                if guest.table_number == neighbor.table_number:
-                    self.fitness_score += 5
+            #for neighbor in good_neighbors:
+            #    if guest.table_number == neighbor.table_number:
+            #        self.fitness_score += 1
 
-            for neighbor in bad_neighbors:
-                if guest.table_number != neighbor.table_number:
-                    self.fitness_score += 1
+            #for neighbor in bad_neighbors:
+            #    if guest.table_number != neighbor.table_number:
+            #        self.fitness_score += 1
+
+            guest_table = [table for table in self.table_list if table.table_number == guest.table_number][0]
+            self.fitness_score += 1000 * len([neighbor for neighbor in guest_table.seated_guests if neighbor.guest_number in guest.same_table])
+            self.fitness_score += len([neighbor for neighbor in guest_table.seated_guests if neighbor.guest_number not in guest.not_same_table])
 
 
         return self.fitness_score
@@ -197,11 +201,11 @@ class GA:
             return None
 
         # DEFAULT GA PARAMETERS; set these values to change how the algorithm works
-        POPULATION_SIZE = 20
+        POPULATION_SIZE = 40
         MUTATION_RATE = 0.1
         DEATH_RATE = 0.2
         FITNESS_THRESHOLD = 1000
-        MAX_GENERATIONS = 1000
+        MAX_GENERATIONS = 2000
 
         # Init
         population = []
@@ -220,7 +224,7 @@ class GA:
             # Add the member to the population
             population.append(layout)
 
-        while max_fitness < FITNESS_THRESHOLD and generation < MAX_GENERATIONS:
+        while generation < MAX_GENERATIONS:
 
             # Randomly select (round-robin) members to breed and create children
             children = GA.breed(population, DEATH_RATE)
@@ -241,7 +245,7 @@ class GA:
             # print the details of the most fit member
             # Repeat until the fitness is over a certain threshold.        
             population.sort(key=lambda l: l.fitness_score, reverse=True)
-            print('Generation {0} - Max fitness: {1}'.format(generation, population[0].fitness_score))
+            if generation % 10 == 0: print('Generation {0} - Max fitness: {1}'.format(generation, population[0].fitness_score))
             generation += 1
 
         population[0].print_layout()
@@ -348,6 +352,10 @@ class GA:
             selected_guest = swapped_guest
             swapped_guest = backup_guest
 
+            backup_number = selected_guest.table_number
+            selected_guest.table_number = swapped_guest.table_number
+            swapped_guest.table_number = backup_number
+
         child.evaluate_fitness()
         return child
 
@@ -375,11 +383,12 @@ class GA:
         """
 
         # randomly select two guests and swap their seats
-        selected_guest_a = genome.get_guests()[int(random.uniform(0, len(genome.get_guests())))]
+        selected_guest_a = None
         selected_guest_b = None
 
         # verify that the selected b guest is not the same guest
-        while selected_guest_b is None or selected_guest_b is selected_guest_a:
+        while selected_guest_b is selected_guest_a:
+            selected_guest_a = genome.get_guests()[int(random.uniform(0, len(genome.get_guests())))]
             selected_guest_b = genome.get_guests()[int(random.uniform(0, len(genome.get_guests())))]
 
         # swap the table numbers of the two guests
