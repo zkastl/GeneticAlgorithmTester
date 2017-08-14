@@ -140,25 +140,16 @@ class Layout:
         '''
         # Starting fitness score
         self.fitness_score = 0
+        sum_of_fitnesses = 0
 
-        for guest in self.get_guests():
+        for table in self.table_list:
+            table_average = 0
+            for guest in table.seated_guests:
+                table_average += 1000 * len([neighbor for neighbor in table.seated_guests if neighbor.guest_number in guest.same_table])
+                table_average += len([neighbor for neighbor in table.seated_guests if neighbor.guest_number in guest.not_same_table])
+            sum_of_fitnesses += table_average
 
-            #good_neighbors = [neighbor for neighbor in self.get_guests() if neighbor.guest_number in guest.same_table]
-            #bad_neighbors = [neighbor for neighbor in self.get_guests() if neighbor.guest_number in guest.not_same_table]
-
-            #for neighbor in good_neighbors:
-            #    if guest.table_number == neighbor.table_number:
-            #        self.fitness_score += 1
-
-            #for neighbor in bad_neighbors:
-            #    if guest.table_number != neighbor.table_number:
-            #        self.fitness_score += 1
-
-            guest_table = [table for table in self.table_list if table.table_number == guest.table_number][0]
-            self.fitness_score += 1000 * len([neighbor for neighbor in guest_table.seated_guests if neighbor.guest_number in guest.same_table])
-            self.fitness_score += len([neighbor for neighbor in guest_table.seated_guests if neighbor.guest_number not in guest.not_same_table])
-
-
+        self.fitness_score = sum_of_fitnesses // len(self.table_list)
         return self.fitness_score
 
     # print out the layout in a pretty form for debugging
