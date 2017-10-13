@@ -8,7 +8,7 @@ from copy import deepcopy
 
 '''
 
-
+# Guest Class
 class Guest:
 
     def __init__(self, guest_number, first_name, last_name, same_table, not_same_table, table_number=0):
